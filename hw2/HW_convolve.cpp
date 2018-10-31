@@ -23,8 +23,6 @@ HW_convolve(ImagePtr I1, ImagePtr Ikernel, ImagePtr I2)
   int hb = h + hk -1;
   int totalb = wb*hb;
   unsigned char buff [totalb];
-  for(int i = 0; i < totalb; i++)
-    buff[i] = (uchar)0;
   
   //create pixel pointers
   ChannelPtr<float> pk;
@@ -40,6 +38,20 @@ HW_convolve(ImagePtr I1, ImagePtr Ikernel, ImagePtr I2)
     for(int j = wk/2; j < wb - wk/2; j++){
       buff[j + i*wb] = *p1++;
     }
+
+  //padding
+  for(int i = 0; i < hk/2; i++)
+    for(int j = 0; j < wb; j++)
+      buff[j + i*wb] = buff[j + wb*hk/2];
+  for(int i = hb - hk/2; i < hb; i++)
+    for(int j = 0; j < wb; j++)
+      buff[j + i*wb] = buff[j + wb*(hb - hk/2 - 1)];
+  for(int i = 0; i < wk/2; i++)
+    for(int j = 0; j < hb; j++)
+      buff[j*wb + i] = buff[j*wb + wk/2];
+  for(int i = wb - wk/2; i < wb; i++)
+    for(int j = 0; j < hb; j++)
+      buff[j*wb + i] = buff[j*wb + wb - wk - 1];
   
   //get kernel pointer pk
   IP_getChannel(Ikernel, ch, pk, type);
@@ -53,8 +65,9 @@ HW_convolve(ImagePtr I1, ImagePtr Ikernel, ImagePtr I2)
       float tmp = 0;
       for(int k = 0; k < hk; k++)
 	for(int l = 0; l < wk; l++){
-	  tmp += *(pk + l + k*wk) * (int)buff[j + i*wb - wk/2 - hk/2*wb + l + k*wb];
+	  tmp += *(pk + l + k*wk) * buff[j + i*wb - wk/2 - hk/2*wb + l + k*wb];
 	}
+      tmp = std::max(std::min((float)255,tmp),(float)0);
       *p2++ = (uchar)tmp;
     }
 }
